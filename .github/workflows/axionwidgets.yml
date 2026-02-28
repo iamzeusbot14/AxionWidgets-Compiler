@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Clone the repo (Explicitly set path to current directory)
+      # 1. Clone the repo
       - name: Checkout AxionWidgets
         uses: actions/checkout@v4
         with:
@@ -16,10 +16,19 @@ jobs:
           ref: bkl
           path: .
 
-      # 2. Inject Gradle Files FIRST (Fixes the "No file matched" error)
+      # 2. DEBUG: List files to verify structure
+      - name: List Files
+        run: ls -R
+
+      # 3. Inject Gradle Files
       - name: Inject Android Gradle Files
         run: |
           echo "rootProject.name = 'AxionWidgets'" > settings.gradle
+          
+          # We use a script to find the AndroidManifest.xml path dynamically
+          MANIFEST_PATH=$(find . -name "AndroidManifest.xml" | head -n 1 | sed 's|^\./||')
+          echo "Found Manifest at: $MANIFEST_PATH"
+
           cat <<EOF > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -28,10 +37,10 @@ jobs:
           apply plugin: 'com.android.application'
           repositories { google(); mavenCentral() }
           android {
-              namespace "com.axion.widgets"
+              namespace "com.android.axion.widgets"
               compileSdk 34
               defaultConfig {
-                  applicationId "com.axion.widgets"
+                  applicationId "com.android.axion.widgets"
                   minSdk 26
                   targetSdk 34
                   versionCode 1
@@ -39,38 +48,40 @@ jobs:
               }
               sourceSets {
                   main {
-                      manifest.srcFile 'AndroidManifest.xml'
+                      manifest.srcFile '$MANIFEST_PATH'
                       java.srcDirs = ['src']
                       res.srcDirs = ['res']
                   }
               }
-              lintOptions { abortOnError false }
+              lintOptions { 
+                  abortOnError false 
+                  checkReleaseBuilds false
+              }
           }
           EOF
 
-      # 3. Set up Java (Cache disabled to prevent the error you saw)
+      # 4. Set up Java
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'zulu'
-          # cache: 'gradle' <-- Removed this to avoid the error
 
-      # 4. Setup Android SDK
+      # 5. Setup Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 5. Initialize the Wrapper
+      # 6. Initialize Wrapper
       - name: Generate Gradle Wrapper
         run: gradle wrapper --gradle-version 8.5
 
-      # 6. Build the APK
+      # 7. Build the APK
       - name: Build Debug APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
 
-      # 7. Upload the resulting APK
+      # 8. Upload Result
       - name: Upload AxionWidgets APK
         uses: actions/upload-artifact@v4
         with:
