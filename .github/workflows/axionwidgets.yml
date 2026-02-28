@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  compile:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout bkl branch
@@ -19,12 +19,51 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      # This step creates a basic build.gradle so the bot knows how to compile
-      - name: Inject Gradle Wrapper
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Inject Android Gradle Files
         run: |
-          gradle init --type java-application
-          echo "apply plugin: 'com.android.application'" > build.gradle
-          # Note: Real-world injection requires matching dependencies from Android.bp
-          
+          # 1. Create a basic settings.gradle
+          echo "rootProject.name = 'AxionWidgets'" > settings.gradle
+
+          # 2. Create a build.gradle tailored for a system app
+          cat <<EOF > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          apply plugin: 'com.android.application'
+          repositories { google(); mavenCentral() }
+          android {
+              namespace "com.axion.widgets" # Adjust if the manifest uses a different package
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.axion.widgets"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              sourceSets {
+                  main {
+                      manifest.srcFile 'AndroidManifest.xml'
+                      java.srcDirs = ['src']
+                      res.srcDirs = ['res']
+                      aidl.srcDirs = ['src']
+                  }
+              }
+          }
+          EOF
+
+      - name: Generate Gradle Wrapper
+        run: gradle wrapper
+
       - name: Build APK
         run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AxionWidgets-Debug
+          path: build/outputs/apk/debug/*.apk
