@@ -17,8 +17,14 @@ jobs:
 
       - name: Inject Android Gradle Files
         run: |
+          # 1. Create settings.gradle
           echo "rootProject.name = 'AxionWidgets'" > settings.gradle
           
+          # 2. Create gradle.properties (This fixes the AndroidX error)
+          echo "android.useAndroidX=true" > gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+
+          # 3. Create build.gradle
           cat <<EOF > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -52,6 +58,7 @@ jobs:
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'com.google.android.material:material:1.9.0'
+              implementation 'androidx.core:core-ktx:1.9.0'
           }
           EOF
 
