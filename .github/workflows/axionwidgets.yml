@@ -1,4 +1,4 @@
-name: AxionWidgets Compiler (Clean Install Fix)
+name: AxionWidgets Compiler (Final Fix)
 
 on:
   workflow_dispatch:
@@ -67,4 +67,15 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Generate
+      - name: Generate Gradle Wrapper
+        run: gradle wrapper --gradle-version 8.5
+
+      - name: Build Debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Sign APK for Installation
+        run: |
+          APK_FILE=$(find build/outputs/apk/debug -name "*.apk" | head -n 1)
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks-pass pass:android --ks /home/runner/.android/
