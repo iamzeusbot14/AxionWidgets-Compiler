@@ -1,4 +1,4 @@
-name: AxionWidgets Compiler (Universal Install Fix)
+name: AxionWidgets Compiler (Clean Install Fix)
 
 on:
   workflow_dispatch:
@@ -32,7 +32,6 @@ jobs:
               namespace "com.android.axion.widgets"
               compileSdk 34
               defaultConfig {
-                  # FIX: Change ID so it doesn't conflict with system app
                   applicationId "com.android.axion.widgets.test.zeus"
                   minSdk 31
                   targetSdk 34
@@ -48,7 +47,9 @@ jobs:
                       assets.srcDirs = ['AxionWidgets/assets']
                   }
               }
-              lintOptions { abortOnError false }
+              lintOptions { 
+                  abortOnError false 
+              }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
@@ -66,24 +67,4 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Generate Gradle Wrapper
-        run: gradle wrapper --gradle-version 8.5
-
-      - name: Build Debug APK
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      # FIX: Ensure V2/V3 signing for Android 13/14 compatibility
-      - name: Sign APK with Debug Key
-        run: |
-          # Find the built APK
-          APK_PATH=$(find build/outputs/apk/debug -name "*.apk" | head -n 1)
-          # Use apksigner from the Android SDK
-          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks-pass pass:android --ks /home/runner/.android/debug.keystore $APK_PATH
-
-      - name: Upload Fixed AxionWidgets APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: AxionWidgets-Fixed-Install
-          path: build/outputs/apk/debug/*.apk
+      - name: Generate
