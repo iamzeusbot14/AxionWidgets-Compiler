@@ -1,4 +1,4 @@
-name: AxionWidgets Compiler
+name: AxionWidgets Compiler (Universal Install Fix)
 
 on:
   workflow_dispatch:
@@ -17,14 +17,10 @@ jobs:
 
       - name: Inject Android Gradle Files
         run: |
-          # 1. Create settings.gradle
           echo "rootProject.name = 'AxionWidgets'" > settings.gradle
-          
-          # 2. Create gradle.properties (This fixes the AndroidX error)
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
 
-          # 3. Create build.gradle
           cat <<EOF > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -36,11 +32,12 @@ jobs:
               namespace "com.android.axion.widgets"
               compileSdk 34
               defaultConfig {
-                  applicationId "com.android.axion.widgets"
+                  # FIX: Change ID so it doesn't conflict with system app
+                  applicationId "com.android.axion.widgets.test.zeus"
                   minSdk 31
                   targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
+                  versionCode 1000
+                  versionName "1.0-FIXED"
               }
               sourceSets {
                   main {
@@ -51,9 +48,7 @@ jobs:
                       assets.srcDirs = ['AxionWidgets/assets']
                   }
               }
-              lintOptions { 
-                  abortOnError false 
-              }
+              lintOptions { abortOnError false }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
@@ -79,8 +74,16 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload AxionWidgets APK
+      # FIX: Ensure V2/V3 signing for Android 13/14 compatibility
+      - name: Sign APK with Debug Key
+        run: |
+          # Find the built APK
+          APK_PATH=$(find build/outputs/apk/debug -name "*.apk" | head -n 1)
+          # Use apksigner from the Android SDK
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks-pass pass:android --ks /home/runner/.android/debug.keystore $APK_PATH
+
+      - name: Upload Fixed AxionWidgets APK
         uses: actions/upload-artifact@v4
         with:
-          name: AxionWidgets-BKL
+          name: AxionWidgets-Fixed-Install
           path: build/outputs/apk/debug/*.apk
