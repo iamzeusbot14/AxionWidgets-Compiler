@@ -8,7 +8,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Clone the repo
       - name: Checkout AxionWidgets
         uses: actions/checkout@v4
         with:
@@ -16,19 +15,10 @@ jobs:
           ref: bkl
           path: .
 
-      # 2. DEBUG: List files to verify structure
-      - name: List Files
-        run: ls -R
-
-      # 3. Inject Gradle Files
       - name: Inject Android Gradle Files
         run: |
           echo "rootProject.name = 'AxionWidgets'" > settings.gradle
           
-          # We use a script to find the AndroidManifest.xml path dynamically
-          MANIFEST_PATH=$(find . -name "AndroidManifest.xml" | head -n 1 | sed 's|^\./||')
-          echo "Found Manifest at: $MANIFEST_PATH"
-
           cat <<EOF > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -41,47 +31,49 @@ jobs:
               compileSdk 34
               defaultConfig {
                   applicationId "com.android.axion.widgets"
-                  minSdk 26
+                  minSdk 31
                   targetSdk 34
                   versionCode 1
                   versionName "1.0"
               }
               sourceSets {
                   main {
-                      manifest.srcFile '$MANIFEST_PATH'
-                      java.srcDirs = ['src']
-                      res.srcDirs = ['res']
+                      # Pointing to the actual subfolder found in the logs
+                      manifest.srcFile 'AxionWidgets/AndroidManifest.xml'
+                      java.srcDirs = ['AxionWidgets/src']
+                      res.srcDirs = ['AxionWidgets/res']
+                      aidl.srcDirs = ['AxionWidgets/src']
+                      assets.srcDirs = ['AxionWidgets/assets']
                   }
               }
               lintOptions { 
                   abortOnError false 
-                  checkReleaseBuilds false
               }
+          }
+          dependencies {
+              # Adding base libraries that AOSP apps usually expect
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.9.0'
           }
           EOF
 
-      # 4. Set up Java
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'zulu'
 
-      # 5. Setup Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 6. Initialize Wrapper
       - name: Generate Gradle Wrapper
         run: gradle wrapper --gradle-version 8.5
 
-      # 7. Build the APK
       - name: Build Debug APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
 
-      # 8. Upload Result
       - name: Upload AxionWidgets APK
         uses: actions/upload-artifact@v4
         with:
