@@ -1,0 +1,30 @@
+name: AxionWidgets Compiler
+
+on:
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout bkl branch
+        uses: actions/checkout@v4
+        with:
+          repository: CosmicCoreX/android_packages_apps_AxionWidgets
+          ref: bkl
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+
+      # This step creates a basic build.gradle so the bot knows how to compile
+      - name: Inject Gradle Wrapper
+        run: |
+          gradle init --type java-application
+          echo "apply plugin: 'com.android.application'" > build.gradle
+          # Note: Real-world injection requires matching dependencies from Android.bp
+          
+      - name: Build APK
+        run: ./gradlew assembleDebug
