@@ -38,7 +38,6 @@ jobs:
               }
               sourceSets {
                   main {
-                      # Pointing to the actual subfolder found in the logs
                       manifest.srcFile 'AxionWidgets/AndroidManifest.xml'
                       java.srcDirs = ['AxionWidgets/src']
                       res.srcDirs = ['AxionWidgets/res']
@@ -51,7 +50,6 @@ jobs:
               }
           }
           dependencies {
-              # Adding base libraries that AOSP apps usually expect
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'com.google.android.material:material:1.9.0'
           }
