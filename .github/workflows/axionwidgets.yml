@@ -1,4 +1,4 @@
-name: AxionWidgets Compiler (Fixed Signing)
+name: AxionWidgets Compiler (Final Version)
 
 on:
   workflow_dispatch:
@@ -75,25 +75,16 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Sign and Rename APK
+      - name: Sign and Prepare APK
         run: |
-          # 1. Find the APK anywhere in the build directory
+          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          
           APK_PATH=$(find . -name "*.apk" | grep "debug" | head -n 1)
           
-          if [ -z "$APK_PATH" ]; then
-            echo "ERROR: APK not found! Check build logs above."
-            exit 1
-          fi
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks debug.keystore --ks-pass pass:android --ks-key-alias androiddebugkey --key-pass pass:android "$APK_PATH"
           
-          echo "Found APK at: $APK_PATH"
-          
-          # 2. Sign it using the standard debug key
-          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks-pass pass:android --ks /home/runner/.android/debug.keystore "$APK_PATH"
-          
-          # 3. Create a clean output folder and move it
           mkdir -p final_apk
           cp "$APK_PATH" final_apk/AxionWidgets_Test.apk
-          echo "Final APK ready at final_apk/AxionWidgets_Test.apk"
 
       - name: Upload Fixed APK
         uses: actions/upload-artifact@v4
