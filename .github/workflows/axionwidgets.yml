@@ -11,7 +11,7 @@ jobs:
       - name: Checkout AxionWidgets
         uses: actions/checkout@v4
         with:
-          repository: CosmicCoreX/android_packages_apps_AxionWidgets
+          repository: git clone --depth=1 https://github.com/iamzeus14/android_packages_apps_AxionWidgets.git -b bkl
           ref: bkl
           path: .
 
